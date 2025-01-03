@@ -1,31 +1,46 @@
 use std::io::{BufRead, BufReader, prelude::*};
 use std::net::{TcpListener, TcpStream};
 fn main() {
-    establish_connection();
-    //find_file();
-    //generate_response()
-}
-
-fn establish_connection() {
     // Use 7878 as it shouldn't conflict with anything else running locally
     println!("Listening for connections...");
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    // TODO: TcpListener bind returns a result. We need failure handling instead of just unwrapping
-    for stream in listener.incoming() {
-        // Iterating the streams like this is synchronous for now
+    handle_connection(listener);
+}
 
-        // I'm guessing the way that the tcp listener works is it queues connection attempts trying to connect
-        // and deals with them one at a time
+fn handle_connection(listener: TcpListener) {
+    // Iterating the streams like this is synchronous for now
+    for stream in listener.incoming() {
+        // The way that the tcp listener works is it queues connection attempts trying to connect
         let stream = stream.unwrap();
+        // TODO: TcpListener bind returns a result. We need failure handling instead of just unwrapping
         println!("Connection established!");
-        handle_connection(stream);
+        let requested_resource = process_request(stream);
+        get_file_if_exists()
     }
 }
 
-fn handle_connection(stream: TcpStream) {
+fn get_file_if_exists() {
+    todo!()
+}
+
+fn process_request(stream: TcpStream) -> String {
+    // Function to return the resource requested
+
     // Request can be quite large so read the contents in a bufReader to remove read overhead
     let buffer = BufReader::new(&stream);
+
     // Need to only take lines that are valid UTF-8 otherwise we panic. (empty is not UTF-8)
-    let request_content: Vec<_>  = buffer.lines().map(|line| line.unwrap()).take_while(|content| !content.is_empty()).collect();
-    println!("Request content: {request_content:#?}");
+    let request: Vec<_>  = buffer.lines().map(|line| line.unwrap()).take_while(|content| !content.is_empty()).collect();
+
+    // Get the request type, resource and protocol
+    let important_request_information = request[0].clone();
+    let important_elements = important_request_information.split(" ").collect::<Vec<&str>>();
+
+    let request_type = important_elements[0];
+    let resource = important_elements[0];
+    let protocol = important_elements[0];
+
+    String::from(resource)
+
+
 }
