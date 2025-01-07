@@ -1,6 +1,8 @@
 use std::io::{BufRead, BufReader, prelude::*};
 use std::net::{TcpListener, TcpStream};
 use std::fs;
+use std::path::Path;
+
 fn main() {
     // Use 7878 as it shouldn't conflict with anything else running locally
     println!("Listening for connections...");
@@ -28,7 +30,7 @@ fn process_request(mut stream: TcpStream) {
     let buffer = BufReader::new(&stream);
 
     // Need to only take lines that are valid UTF-8 otherwise we panic. (empty is not UTF-8)
-    let request: Vec<_>  = buffer.lines().map(|line| line.unwrap()).take_while(|content| !content.is_empty()).collect();
+    let request: Vec<_>  = buffer.lines().map(|line| line.unwrap()).collect();//.take_while(|content| !content.is_empty()).collect();
 
     // Get the request type, resource and protocol
     let important_request_information = request[0].clone();
@@ -38,20 +40,28 @@ fn process_request(mut stream: TcpStream) {
     let resource = important_elements[0];
     let protocol = important_elements[0];
 
-    get_file_if_exists();
-    
-    stream.write_all(generate_response().as_bytes()).unwrap();
-}
+    let file = Path::new(resource);
 
-fn generate_response() -> String{
+    let mut response;
     // Generate a response using the standard http format
-
-    // Not much functionality for now
-    let contents = fs::read_to_string("src/HelloWorld.html").unwrap();
-    let length = contents.chars().count();
-    let status_line = "HTTP/1.1 200 OK";
-    String::from(format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}"))
+    if file.exists(){
+        let file_contents = fs::read_to_string(file).unwrap();
+        response = generate_success_response(file_contents);
+    }
+    else{
+        response = generate_not_found_response();
+    }
+    stream.write_all(response.as_bytes()).unwrap();
 }
 
-fn get_file_if_exists() {
+fn generate_success_response(file_contents: String) -> String {
+    // Not much functionality for now
+    let length = file_contents.chars().count();
+    let status_line = "HTTP/1.1 200 OK";
+    String::from(format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{file_contents}"))
+}
+
+fn generate_not_found_response() -> String {
+    let status_line = "HTTP/1.1 404 Not Found";
+    String::from(format!("{status_line}"))
 }
